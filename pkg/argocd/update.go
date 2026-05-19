@@ -497,6 +497,23 @@ func marshalParamsOverride(ctx context.Context, applicationImages *ApplicationIm
 
 			override, err = marshalWithIndent(&helmNewValues, defaultIndent)
 		} else {
+			if wbc != nil && wbc.WriteBackManagedParamsOnly {
+				// Write back only the parameters image-updater manages, dropping any
+				// other Helm parameters defined on the Application as well as any
+				// stale entries already present in the override file.
+				managed := imageManagedParamNames(applicationImages)
+				managedParams := make([]v1alpha1.HelmParameter, 0, len(managed))
+				for _, p := range appSource.Helm.Parameters {
+					if managed[p.Name] {
+						managedParams = append(managedParams, p)
+					}
+				}
+				newParams := helmOverride{Helm: helmParameters{Parameters: managedParams}}
+				sortHelmParameters(newParams.Helm.Parameters)
+				override, err = marshalWithIndent(newParams, defaultIndent)
+				break
+			}
+
 			var params helmOverride
 			newParams := helmOverride{
 				Helm: helmParameters{
@@ -530,6 +547,26 @@ func marshalParamsOverride(ctx context.Context, applicationImages *ApplicationIm
 	}
 
 	return override, nil
+}
+
+// imageManagedParamNames returns the set of Helm parameter names that
+// image-updater manages for the given application (image name/tag, or a
+// full image-spec parameter).
+func imageManagedParamNames(applicationImages *ApplicationImages) map[string]bool {
+	names := make(map[string]bool)
+	for _, c := range GetImagesAndAliasesFromApplication(applicationImages) {
+		if c == nil {
+			continue
+		}
+		name, version := getHelmParamNames(c)
+		if name != "" {
+			names[name] = true
+		}
+		if version != "" {
+			names[version] = true
+		}
+	}
+	return names
 }
 
 func sortHelmParameters(params []v1alpha1.HelmParameter) {

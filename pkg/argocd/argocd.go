@@ -477,6 +477,9 @@ func mergeWBCSettings(global *iuapi.WriteBackConfig, appWBC *iuapi.WriteBackConf
 		if appWBC.GitConfig.WriteBackTarget != nil {
 			merged.GitConfig.WriteBackTarget = appWBC.GitConfig.WriteBackTarget
 		}
+		if appWBC.GitConfig.WriteBackParameters != nil {
+			merged.GitConfig.WriteBackParameters = appWBC.GitConfig.WriteBackParameters
+		}
 		if appWBC.GitConfig.PullRequest != nil {
 			// App-level PullRequest replaces the global entirely. Providers are a
 			// mutually-exclusive choice, so field-by-field merging across levels
@@ -550,6 +553,10 @@ func newWBCFromSettings(ctx context.Context, app *argocdapi.Application, kubeCli
 			} else {
 				wbc.Target = target
 			}
+		}
+		if settings.GitConfig != nil && settings.GitConfig.WriteBackParameters != nil {
+			wbc.WriteBackManagedParamsOnly = strings.EqualFold(
+				strings.TrimSpace(*settings.GitConfig.WriteBackParameters), WriteBackParamsManagedOnly)
 		}
 		// Parse all other git-related configurations
 		if err := parseGitConfig(ctx, app, kubeClient, settings, wbc, creds); err != nil {

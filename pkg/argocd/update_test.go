@@ -2295,6 +2295,77 @@ helm:
 		assert.Equal(t, strings.TrimSpace(strings.ReplaceAll(expected, "\t", "  ")), strings.TrimSpace(string(yaml)))
 	})
 
+	t.Run("WriteBackManagedParamsOnly drops non-image params from .argocd-source", func(t *testing.T) {
+		// With managed-params-only enabled, the .argocd-source override file must
+		// contain only the image parameters image-updater manages. Other Helm
+		// parameters defined on the Application (and stale entries in the existing
+		// file) are dropped.
+		expected := `
+helm:
+  parameters:
+  - name: image.name
+    value: nginx
+    forcestring: true
+  - name: image.tag
+    value: v1.0.0
+    forcestring: true
+`
+		app := v1alpha1.Application{
+			ObjectMeta: v1.ObjectMeta{
+				Name: "testapp",
+			},
+			Spec: v1alpha1.ApplicationSpec{
+				Source: &v1alpha1.ApplicationSource{
+					RepoURL:        "https://example.com/example",
+					TargetRevision: "main",
+					Helm: &v1alpha1.ApplicationSourceHelm{
+						Parameters: []v1alpha1.HelmParameter{
+							{Name: "image.name", Value: "nginx", ForceString: true},
+							{Name: "image.tag", Value: "v1.0.0", ForceString: true},
+							{Name: "ephemeral.namespace", Value: "pr-942", ForceString: false},
+							{Name: "global.image.tag", Value: "develop", ForceString: false},
+						},
+					},
+				},
+			},
+			Status: v1alpha1.ApplicationStatus{
+				SourceType: v1alpha1.ApplicationSourceTypeHelm,
+				Summary: v1alpha1.ApplicationSummary{
+					Images: []string{"nginx:v0.0.0"},
+				},
+			},
+		}
+
+		// Existing override file even carries a stale non-image param.
+		originalData := []byte(`
+helm:
+  parameters:
+  - name: image.name
+    value: nginx
+    forcestring: true
+  - name: ephemeral.namespace
+    value: pr-100
+    forcestring: false
+`)
+		im := NewImage(image.NewFromIdentifier("nginx"))
+		im.ImageAlias = "nginx"
+		im.HelmImageName = "image.name"
+		im.HelmImageTag = "image.tag"
+		applicationImages := &ApplicationImages{
+			Application: app,
+			Images:      ImageList{im},
+			WriteBackConfig: &WriteBackConfig{
+				Method:                     WriteBackGit,
+				Target:                     ".argocd-source-testapp.yaml",
+				WriteBackManagedParamsOnly: true,
+			},
+		}
+		yaml, err := marshalParamsOverride(context.Background(), applicationImages, originalData)
+		require.NoError(t, err)
+		assert.NotEmpty(t, yaml)
+		assert.Equal(t, strings.TrimSpace(strings.ReplaceAll(expected, "\t", "  ")), strings.TrimSpace(string(yaml)))
+	})
+
 	t.Run("Invalid unmarshal originalData error with valid Helm source", func(t *testing.T) {
 		expected := `
 helm:

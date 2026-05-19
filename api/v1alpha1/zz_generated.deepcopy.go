@@ -130,6 +130,11 @@ func (in *GitConfig) DeepCopyInto(out *GitConfig) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.WriteBackParameters != nil {
+		in, out := &in.WriteBackParameters, &out.WriteBackParameters
+		*out = new(string)
+		**out = **in
+	}
 	if in.PullRequest != nil {
 		in, out := &in.PullRequest, &out.PullRequest
 		*out = new(PullRequest)

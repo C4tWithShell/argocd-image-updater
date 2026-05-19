@@ -228,6 +228,17 @@ func getWriteBackConfigFromAnnotations(app *argocdapi.Application) *iuapi.WriteB
 		}
 	}
 
+	if params, ok := app.Annotations[WriteBackParamsAnnotation]; ok {
+		params = strings.TrimSpace(params)
+		if params != "" {
+			if result.GitConfig == nil {
+				result.GitConfig = &iuapi.GitConfig{}
+			}
+			result.GitConfig.WriteBackParameters = &params
+			hasAny = true
+		}
+	}
+
 	if gitBranch, ok := app.Annotations[GitBranchAnnotation]; ok {
 		gitBranch = strings.TrimSpace(gitBranch)
 		if gitBranch != "" {
@@ -269,7 +280,12 @@ const (
 	GitBranchAnnotation       = ImageUpdaterAnnotationPrefix + "/git-branch"
 	GitRepositoryAnnotation   = ImageUpdaterAnnotationPrefix + "/git-repository"
 	WriteBackTargetAnnotation = ImageUpdaterAnnotationPrefix + "/write-back-target"
+	WriteBackParamsAnnotation = ImageUpdaterAnnotationPrefix + "/write-back-params"
 )
+
+// WriteBackParamsManagedOnly is the value of WriteBackParamsAnnotation that restricts
+// the default .argocd-source-*.yaml write-back to image-updater managed parameters only.
+const WriteBackParamsManagedOnly = "managed-only"
 
 // Helm related annotations
 const (

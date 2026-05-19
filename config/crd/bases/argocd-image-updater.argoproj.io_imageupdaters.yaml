@@ -344,6 +344,18 @@ spec:
                                 If not specified here or at the spec level, the controller MUST infer it from the
                                 Argo CD Application's `spec.source.repoURL`. This field allows overriding that.
                               type: string
+                            writeBackParameters:
+                              description: |-
+                                WriteBackParameters controls which Helm parameters are written to the default
+                                `.argocd-source-*.yaml` override file. "all" (the default) mirrors the full
+                                `helm.parameters` list from the Argo CD Application. "managed-only" writes back
+                                only the image parameters managed by image-updater, leaving any other Helm
+                                parameters (defined elsewhere on the Application) out of the override file.
+                                This has no effect when WriteBackTarget points to a helmvalues/kustomization file.
+                              enum:
+                              - all
+                              - managed-only
+                              type: string
                             writeBackTarget:
                               description: |-
                                 WriteBackTarget defines the path and type of file to update in the Git repository.
@@ -458,6 +470,18 @@ spec:
                           Repository URL to commit changes to.
                           If not specified here or at the spec level, the controller MUST infer it from the
                           Argo CD Application's `spec.source.repoURL`. This field allows overriding that.
+                        type: string
+                      writeBackParameters:
+                        description: |-
+                          WriteBackParameters controls which Helm parameters are written to the default
+                          `.argocd-source-*.yaml` override file. "all" (the default) mirrors the full
+                          `helm.parameters` list from the Argo CD Application. "managed-only" writes back
+                          only the image parameters managed by image-updater, leaving any other Helm
+                          parameters (defined elsewhere on the Application) out of the override file.
+                          This has no effect when WriteBackTarget points to a helmvalues/kustomization file.
+                        enum:
+                        - all
+                        - managed-only
                         type: string
                       writeBackTarget:
                         description: |-

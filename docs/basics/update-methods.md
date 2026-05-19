@@ -384,6 +384,38 @@ spec:
 Note that using the helmvalues option needs the Helm values filename to be specified in the
 `writeBackConfig.gitConfig.writeBackTarget`.
 
+### <a name="method-git-helm-params"></a>Limiting Helm parameters in the default override file
+
+When git write-back targets the default `.argocd-source-<appName>.yaml` file for a Helm
+application, the override file mirrors the **full** `spec.source.helm.parameters` list of
+the Argo CD Application. This means parameters that Image Updater does not manage (for
+example, those set by a PR-environment generator) are copied into the override file as
+well, so you end up maintaining them in two places.
+
+To restrict the override file to only the image parameters Image Updater manages, set
+`writeBackParameters` to `managed-only`:
+
+```yaml
+spec:
+  writeBackConfig:
+    method: "git"
+    gitConfig:
+      writeBackParameters: "managed-only"
+```
+
+or, when configuring through Application annotations:
+
+```yaml
+argocd-image-updater.argoproj.io/write-back-method: git
+argocd-image-updater.argoproj.io/write-back-params: managed-only
+```
+
+With `managed-only`, any non-image Helm parameters — and any stale entries already present
+in the override file — are dropped on the next write-back. The default value is `all`,
+which preserves the existing behaviour. This setting has no effect when `writeBackTarget`
+points to a `helmvalues`/`kustomization` file, since those targets already write image
+parameters only.
+
 ### <a name="method-git-pull-request"></a>Git Pull Request
 
 The Git Pull Request mode extends the `git` write-back method so that instead

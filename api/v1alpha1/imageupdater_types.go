@@ -112,6 +112,16 @@ type GitConfig struct {
 	// +optional
 	WriteBackTarget *string `json:"writeBackTarget,omitempty"`
 
+	// WriteBackParameters controls which Helm parameters are written to the default
+	// `.argocd-source-*.yaml` override file. "all" (the default) mirrors the full
+	// `helm.parameters` list from the Argo CD Application. "managed-only" writes back
+	// only the image parameters managed by image-updater, leaving any other Helm
+	// parameters (defined elsewhere on the Application) out of the override file.
+	// This has no effect when WriteBackTarget points to a helmvalues/kustomization file.
+	// +kubebuilder:validation:Enum=all;managed-only
+	// +optional
+	WriteBackParameters *string `json:"writeBackParameters,omitempty"`
+
 	// PullRequest configures creation of pull requests when writing back image updates to Git.
 	// When set, the controller opens a PR instead of pushing to the branch.
 	// If not specified write back config method is `git`.

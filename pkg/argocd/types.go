@@ -83,10 +83,14 @@ type WriteBackConfig struct {
 	GitCommitSignOff       bool
 	KustomizeBase          string
 	Target                 string
-	GitRepo                string
-	GitCreds               git.CredsStore
-	PRProvider             PRProvider
-	PullRequest            *PullRequest
+	// WriteBackManagedParamsOnly, when true, restricts the default
+	// .argocd-source-*.yaml write-back to the Helm parameters image-updater
+	// manages, instead of mirroring the full helm.parameters list.
+	WriteBackManagedParamsOnly bool
+	GitRepo                    string
+	GitCreds                   git.CredsStore
+	PRProvider                 PRProvider
+	PullRequest                *PullRequest
 }
 
 // RequiresLocking returns true if write-back method requires repository locking

@@ -135,6 +135,24 @@ func Test_getWriteBackConfigFromAnnotations(t *testing.T) {
 		assert.Nil(t, result.Method)
 	})
 
+	t.Run("should return config with GitConfig when write-back-params is set", func(t *testing.T) {
+		app := &argocdapi.Application{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-app",
+				Namespace: "argocd",
+				Annotations: map[string]string{
+					WriteBackParamsAnnotation: "managed-only",
+				},
+			},
+		}
+
+		result := getWriteBackConfigFromAnnotations(app)
+		require.NotNil(t, result)
+		require.NotNil(t, result.GitConfig)
+		require.NotNil(t, result.GitConfig.WriteBackParameters)
+		assert.Equal(t, "managed-only", *result.GitConfig.WriteBackParameters)
+	})
+
 	t.Run("should return config with all git-related annotations", func(t *testing.T) {
 		app := &argocdapi.Application{
 			ObjectMeta: v1.ObjectMeta{
