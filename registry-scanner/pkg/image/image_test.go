@@ -207,6 +207,38 @@ func Test_ContainerList(t *testing.T) {
 	})
 }
 
+func Test_StaleDigestMatch(t *testing.T) {
+	const (
+		imgRef    = "registry.gitlab.overteam.ru/overteam/ai/platform/chatwoot"
+		digestNew = "sha256:14fcdd44676a063e654f965e08fd22792306406bf1bc2d8004ce4c1f9b28d276"
+		digestOld = "sha256:b5be4813262f4022f95d16b7a92104e81b542b733c11669d68768717f6e76c33"
+	)
+	cfg := NewFromIdentifier(imgRef)
+
+	t.Run("re-selects the stale digest when two containers share an image name", func(t *testing.T) {
+		// Same image name, two live digests (e.g. web still old, worker updated).
+		images := ContainerImageList{
+			NewFromIdentifier(imgRef + "@" + digestNew),
+			NewFromIdentifier(imgRef + "@" + digestOld),
+		}
+		stale := images.StaleDigestMatch(cfg, digestNew)
+		require.NotNil(t, stale)
+		assert.Equal(t, digestOld, stale.ImageTag.TagDigest)
+	})
+
+	t.Run("returns nil when the only match is already at the latest digest", func(t *testing.T) {
+		images := ContainerImageList{NewFromIdentifier(imgRef + "@" + digestNew)}
+		assert.Nil(t, images.StaleDigestMatch(cfg, digestNew))
+	})
+
+	t.Run("returns nil when no image name matches", func(t *testing.T) {
+		images := ContainerImageList{
+			NewFromIdentifier("registry.gitlab.overteam.ru/overteam/ai/platform/other@" + digestOld),
+		}
+		assert.Nil(t, images.StaleDigestMatch(cfg, digestNew))
+	})
+}
+
 func Test_getImageDigestFromTag(t *testing.T) {
 	tagAndDigest := "test-tag@sha256:abcde"
 	tagName, tagDigest := getImageDigestFromTag(tagAndDigest)

@@ -179,6 +179,32 @@ func (list *ContainerImageList) ContainsImage(img *ContainerImage, checkVersion 
 	return nil
 }
 
+// StaleDigestMatch returns a live image from the list that matches img by name
+// and registry but whose digest differs from latestDigest — i.e. a container
+// still pinned to an older digest that needs a digest-strategy update. It
+// returns nil when no such stale match exists (no/single match, or every match
+// is already at latestDigest).
+//
+// This disambiguates applications where several containers reference the same
+// image name. Argo CD's Status.Summary.Images (the source of the live image
+// list) is alias-less and deduplicated by full reference, so a plain
+// ContainsImage lookup returns an arbitrary (first) name match. When one
+// container has already been updated to latestDigest, that match may belong to
+// it, causing a sibling container still on an older digest to be wrongly
+// considered up-to-date and never updated. Callers use this, for digest
+// strategy only, to re-select the image that genuinely needs evaluating.
+func (list *ContainerImageList) StaleDigestMatch(img *ContainerImage, latestDigest string) *ContainerImage {
+	for _, image := range *list {
+		if img.ImageName != image.ImageName || image.RegistryURL != img.RegistryURL {
+			continue
+		}
+		if image.ImageTag != nil && image.ImageTag.IsDigest() && image.ImageTag.TagDigest != latestDigest {
+			return image
+		}
+	}
+	return nil
+}
+
 func (list *ContainerImageList) Originals() []string {
 	results := make([]string, len(*list))
 	for i, img := range *list {
